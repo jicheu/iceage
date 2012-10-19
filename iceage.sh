@@ -1,11 +1,14 @@
 #!/bin/bash
 
 # Check syntax
-if [ $# -ne 2 ]
+if [ $# -lt 2 ]
 then
-	echo "Usage: iceage VAULT PATH"
+	echo "Usage: iceage VAULT PATH [type]"
 	echo "VAULT: your (already created) glacier VAULT"
 	echo "PATH: the path where to look for images to upload"
+	echo "[type] optional type of file: image, video, ... everything file command can identify"
+	echo "  all for every file"
+	echo "  empty means *image* only"
 	exit 1
 fi
 
@@ -17,8 +20,21 @@ function ctrl_c() {
 	exit 2
 }
 
-path=$2
 vault=$1
+path=$2
+filetype="image"
+
+# if filetype requested is all, then we'll fake the grep by looking for : which is present by default
+if [ $# -eq 3 ]
+then
+	if [ $3 == "all" ]
+	then
+		filetype=":"
+	else
+		filetype=$3
+	fi
+fi
+
 log="iceage.log"
 
 # generate files to upload list
@@ -26,7 +42,7 @@ log="iceage.log"
 function generate {
 	touch imagelist.txt
 	echo "Generating list of files to upload..."
-	find $path -name "*" -follow -type f -print0 | xargs -0 file | grep image | awk -F ":" '{print $1}' > imagelist.txt
+	find $path -name "*" -follow -type f -print0 | xargs -0 file | grep $3 | awk -F ":" '{print $1}' > imagelist.txt
 }
 
 # what to do with existing image list
@@ -61,7 +77,7 @@ while read line
 do
 	echo "Uploading $line (`ls -l ""$line"" | awk -F " " '{print $5}'` bytes) in vault $vault"
 	# Upload with a name where we replace spaces by underscore. Avoid future trouble...
-	glacier archive upload --name "`echo $line | tr ' ' '_'`" $vault "$line"
+	glacier --region eu-west-1  archive upload --name "`echo $line | tr ' ' '_'`" $vault "$line"
 	if [ $? == 0 ] 
 	then
 		echo "$line" >> $log

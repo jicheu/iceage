@@ -42,7 +42,7 @@ log="iceage.log"
 function generate {
 	touch imagelist.txt
 	echo "Generating list of files to upload..."
-	find $path -name "*" -follow -type f -print0 | xargs -0 file | grep $3 | awk -F ":" '{print $1}' > imagelist.txt
+	find $path -name "*" -follow -type f -print0 | xargs -0 file | grep $filetype | awk -F ":" '{print $1}' > imagelist.txt
 }
 
 # what to do with existing image list
